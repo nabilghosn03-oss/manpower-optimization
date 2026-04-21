@@ -240,28 +240,235 @@ if run:
 # ===== DISPLAY RESULTS =====
 if hasattr(st.session_state, 'optimization_status'):
  
-    # ===== KPI METRICS (ONLY EDITED SECTION) =====
-    row1 = st.columns(3)
-    row2 = st.columns(3)
-
-    with row1[0]:
+    # ----- KPI METRICS -----
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    with col1:
         st.metric("💰 Total Cost", f"SAR {st.session_state.total_cost:,.0f}")
-
-    with row1[1]:
+    with col2:
         st.metric("👥 Total Employees", f"{st.session_state.total_employees_final:,}")
-
-    with row1[2]:
-        st.metric("📊 Saudization Rate", f"{st.session_state.saudization_achieved:.1f}%")
-
-    with row2[0]:
+    with col3:
         st.metric("🇸🇦 In-House Saudi", f"{st.session_state.total_saudi_final:,}")
-
-    with row2[1]:
+    with col4:
         st.metric("🌍 In-House Non-Saudi", f"{st.session_state.total_non_saudi_final:,}")
-
-    with row2[2]:
+    with col5:
         st.metric("🤝 Outsourced", f"{st.session_state.total_outsourced_final:,}")
+    with col6:
+        st.metric("📊 Saudization Rate", f"{st.session_state.saudization_achieved:.1f}%")
  
     st.markdown("---")
  
-    # ===== EVERYTHING BELOW UNCHANGED =====
+    # ----- COST ANALYSIS -----
+    st.markdown("### 📈 Cost Analysis")
+ 
+    viz_col1, viz_col2 = st.columns(2)
+ 
+    COLORS_METHOD = ['#1D9E75', '#378ADD', '#F0993B']
+    COLORS_FAMILY = [
+        '#1D9E75', '#378ADD', '#F0993B', '#7F77DD', '#D85A30',
+        '#D4537E', '#639922', '#BA7517', '#888780', '#185FA5', '#5F5E5A'
+    ]
+ 
+    # Pie 1: Cost by sourcing method
+    with viz_col1:
+        total_all = (st.session_state.total_cost_saudi +
+                     st.session_state.total_cost_non_saudi +
+                     st.session_state.total_cost_outsourced)
+ 
+        labels_m = ['In-House Saudi', 'In-House Non-Saudi', 'Outsourced']
+        values_m = [
+            st.session_state.total_cost_saudi,
+            st.session_state.total_cost_non_saudi,
+            st.session_state.total_cost_outsourced
+        ]
+ 
+        fig_method = go.Figure(data=[go.Pie(
+            labels=labels_m,
+            values=values_m,
+            marker=dict(colors=COLORS_METHOD, line=dict(color='#ffffff', width=2)),
+            hovertemplate='<b>%{label}</b><br>SAR %{value:,.0f}<br>%{percent}<extra></extra>',
+            textinfo='none',
+            hole=0.45
+        )])
+        fig_method.update_layout(
+            title=dict(text='Cost by sourcing method', font=dict(size=14, color='#1a1a1a'), x=0, xanchor='left'),
+            height=360,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            legend=dict(
+                orientation='v',
+                x=1.02, y=0.5,
+                xanchor='left', yanchor='middle',
+                font=dict(size=12, color='#444'),
+                bgcolor='rgba(0,0,0,0)'
+            ),
+            annotations=[dict(
+                text=f"SAR<br>{total_all/1e6:.1f}M" if total_all >= 1e6 else f"SAR<br>{total_all:,.0f}",
+                x=0.5, y=0.5, font_size=13, showarrow=False,
+                font=dict(color='#1a1a1a', family='sans-serif')
+            )]
+        )
+        st.plotly_chart(fig_method, use_container_width=True)
+ 
+    # Pie 2: Cost by Job Family — top 10 + Other
+    with viz_col2:
+        results_sorted = st.session_state.results_df.copy()
+        results_sorted = results_sorted.sort_values('Total Cost (SAR)', ascending=False).reset_index(drop=True)
+ 
+        top10 = results_sorted.head(10)
+        other_rows = results_sorted.iloc[10:]
+        other_cost = other_rows['Total Cost (SAR)'].sum()
+        other_count = len(other_rows)
+ 
+        job_families = list(top10['Job Family'])
+        costs = list(top10['Total Cost (SAR)'])
+ 
+        if other_cost > 0:
+            job_families.append(f"Other ({other_count} families)")
+            costs.append(other_cost)
+ 
+        fig_family = go.Figure(data=[go.Pie(
+            labels=job_families,
+            values=costs,
+            marker=dict(colors=COLORS_FAMILY[:len(job_families)], line=dict(color='#ffffff', width=2)),
+            hovertemplate='<b>%{label}</b><br>SAR %{value:,.0f}<br>%{percent}<extra></extra>',
+            textinfo='none',
+            hole=0.45
+        )])
+        fig_family.update_layout(
+            title=dict(text='Cost by job family (top 10)', font=dict(size=14, color='#1a1a1a'), x=0, xanchor='left'),
+            height=360,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            legend=dict(
+                orientation='v',
+                x=1.02, y=0.5,
+                xanchor='left', yanchor='middle',
+                font=dict(size=11, color='#444'),
+                bgcolor='rgba(0,0,0,0)'
+            )
+        )
+        st.plotly_chart(fig_family, use_container_width=True)
+ 
+    st.markdown("---")
+ 
+    # ----- HEADCOUNT BAR CHART -----
+    st.markdown("### 👥 Headcount Distribution by Job Family")
+ 
+    df_plot = st.session_state.results_df.copy()
+    fig_bar = go.Figure()
+    fig_bar.add_trace(go.Bar(
+        name='In-House Saudi',
+        x=df_plot['Job Family'],
+        y=df_plot['In-House Saudi'],
+        marker_color='#1D9E75',
+        hovertemplate='<b>%{x}</b><br>Saudi: %{y:,}<extra></extra>'
+    ))
+    fig_bar.add_trace(go.Bar(
+        name='In-House Non-Saudi',
+        x=df_plot['Job Family'],
+        y=df_plot['In-House Non-Saudi'],
+        marker_color='#378ADD',
+        hovertemplate='<b>%{x}</b><br>Non-Saudi: %{y:,}<extra></extra>'
+    ))
+    fig_bar.add_trace(go.Bar(
+        name='Outsourced',
+        x=df_plot['Job Family'],
+        y=df_plot['Outsourced'],
+        marker_color='#F0993B',
+        hovertemplate='<b>%{x}</b><br>Outsourced: %{y:,}<extra></extra>'
+    ))
+    fig_bar.update_layout(
+        barmode='stack',
+        height=380,
+        margin=dict(t=20, b=80, l=20, r=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend=dict(orientation='h', x=0, y=1.08, font=dict(size=12, color='#444')),
+        xaxis=dict(tickangle=-35, tickfont=dict(size=11, color='#555'), gridcolor='rgba(0,0,0,0)'),
+        yaxis=dict(gridcolor='#eeeeea', tickfont=dict(size=11, color='#555'), title='Headcount'),
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+ 
+    st.markdown("---")
+ 
+    # ----- DETAILED TABLE -----
+    st.markdown("### 📋 Detailed Allocation by Job Family")
+    st.markdown("<p style='color:#888;font-size:13px;margin-top:-10px;margin-bottom:12px;'>Click each row to expand the cost breakdown</p>", unsafe_allow_html=True)
+ 
+    for idx, row in st.session_state.results_df.iterrows():
+        with st.expander(f"**{row['Job Family']}** — SAR {row['Total Cost (SAR)']:,.0f}"):
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Saudi", f"{int(row['In-House Saudi']):,}")
+            c2.metric("Non-Saudi", f"{int(row['In-House Non-Saudi']):,}")
+            c3.metric("Outsourced", f"{int(row['Outsourced']):,}")
+            c4.metric("Total", f"{int(row['Total Employees']):,}")
+ 
+            fig_bk = go.Figure(data=[go.Bar(
+                x=['In-House Saudi', 'In-House Non-Saudi', 'Outsourced'],
+                y=[float(row['Cost - Saudi (SAR)']),
+                   float(row['Cost - Non-Saudi (SAR)']),
+                   float(row['Cost - Outsourced (SAR)'])],
+                marker_color=['#1D9E75', '#378ADD', '#F0993B'],
+                hovertemplate='%{x}<br>SAR %{y:,.0f}<extra></extra>'
+            )])
+            fig_bk.update_layout(
+                height=260,
+                margin=dict(t=10, b=10, l=10, r=10),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                yaxis=dict(title='Cost (SAR)', gridcolor='#eeeeea', tickfont=dict(size=11)),
+                xaxis=dict(gridcolor='rgba(0,0,0,0)'),
+                showlegend=False
+            )
+            st.plotly_chart(fig_bk, use_container_width=True)
+ 
+    st.markdown("---")
+ 
+    # ----- DOWNLOAD -----
+    st.markdown("### 📥 Download Results")
+ 
+    output_buffer = io.BytesIO()
+    with pd.ExcelWriter(output_buffer, engine='openpyxl') as writer:
+        st.session_state.results_df.to_excel(writer, sheet_name='Optimization Results', index=False)
+ 
+        summary_data = {
+            'Metric': ['Total Cost (SAR)', 'Total Employees', 'In-House Saudi',
+                       'In-House Non-Saudi', 'Outsourced', 'Saudization Rate Achieved (%)',
+                       'Optimization Status', 'Outsourced Cost Type',
+                       'Can Reduce Saudi', 'Saudization Enforced'],
+            'Value': [f'{st.session_state.total_cost:,.0f}',
+                      st.session_state.total_employees_final,
+                      st.session_state.total_saudi_final,
+                      st.session_state.total_non_saudi_final,
+                      st.session_state.total_outsourced_final,
+                      f'{st.session_state.saudization_achieved:.2f}',
+                      st.session_state.optimization_status,
+                      outsource_type,
+                      'Yes' if can_fire_saudi else 'No',
+                      'Yes' if enforce_saudization else 'No']
+        }
+        if enforce_saudization:
+            summary_data['Metric'].insert(6, 'Saudization Rate Required (%)')
+            summary_data['Value'].insert(6, f'{SAUDIZATION_RATE*100:.2f}')
+ 
+        pd.DataFrame(summary_data).to_excel(writer, sheet_name='Summary', index=False)
+ 
+    output_buffer.seek(0)
+    st.download_button(
+        label="📊 Download Results as Excel",
+        data=output_buffer.getvalue(),
+        file_name="Manpower_Optimization_Results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+ 
+# ===== SIDEBAR FOOTER =====
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📋 About")
+st.sidebar.markdown("""
+This tool optimizes your workforce allocation to minimize costs while respecting:
+- Maximum outsourcing ratios
+- Saudi labor retention policies
+- Saudization rate requirements
+""")
