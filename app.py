@@ -84,8 +84,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
  
 # ===== HEADER =====
-st.markdown("## 🎯 Manpower Optimization System")
-st.markdown("<p style='color:#888;margin-top:-12px;margin-bottom:8px;'>Optimize workforce allocation while minimizing costs</p>", unsafe_allow_html=True)
+st.markdown("## 🎯 Manpower Optimization Tool")
+st.markdown("<p style='color:#888;margin-top:-12px;margin-bottom:8px;'>Optimize your workforce allocation while minimizing total costs</p>", unsafe_allow_html=True)
 st.markdown("---")
  
 # ===== SIDEBAR =====
@@ -241,19 +241,21 @@ if run:
 if hasattr(st.session_state, 'optimization_status'):
  
     # ----- KPI METRICS -----
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("💰 Total Cost", f"SAR {st.session_state.total_cost:,.0f}")
     with col2:
         st.metric("👥 Total Employees", f"{st.session_state.total_employees_final:,}")
     with col3:
-        st.metric("🇸🇦 In-House Saudi", f"{st.session_state.total_saudi_final:,}")
-    with col4:
-        st.metric("🌍 In-House Non-Saudi", f"{st.session_state.total_non_saudi_final:,}")
-    with col5:
-        st.metric("🤝 Outsourced", f"{st.session_state.total_outsourced_final:,}")
-    with col6:
         st.metric("📊 Saudization Rate", f"{st.session_state.saudization_achieved:.1f}%")
+    
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.metric("🇸🇦 In-House Saudi", f"{st.session_state.total_saudi_final:,}")
+    with col5:
+        st.metric("🌍 In-House Non-Saudi", f"{st.session_state.total_non_saudi_final:,}")
+    with col6:
+        st.metric("🤝 Outsourced", f"{st.session_state.total_outsourced_final:,}")
  
     st.markdown("---")
  
@@ -350,46 +352,6 @@ if hasattr(st.session_state, 'optimization_status'):
             )
         )
         st.plotly_chart(fig_family, use_container_width=True)
- 
-    st.markdown("---")
- 
-    # ----- HEADCOUNT BAR CHART -----
-    st.markdown("### 👥 Headcount Distribution by Job Family")
- 
-    df_plot = st.session_state.results_df.copy()
-    fig_bar = go.Figure()
-    fig_bar.add_trace(go.Bar(
-        name='In-House Saudi',
-        x=df_plot['Job Family'],
-        y=df_plot['In-House Saudi'],
-        marker_color='#1D9E75',
-        hovertemplate='<b>%{x}</b><br>Saudi: %{y:,}<extra></extra>'
-    ))
-    fig_bar.add_trace(go.Bar(
-        name='In-House Non-Saudi',
-        x=df_plot['Job Family'],
-        y=df_plot['In-House Non-Saudi'],
-        marker_color='#378ADD',
-        hovertemplate='<b>%{x}</b><br>Non-Saudi: %{y:,}<extra></extra>'
-    ))
-    fig_bar.add_trace(go.Bar(
-        name='Outsourced',
-        x=df_plot['Job Family'],
-        y=df_plot['Outsourced'],
-        marker_color='#F0993B',
-        hovertemplate='<b>%{x}</b><br>Outsourced: %{y:,}<extra></extra>'
-    ))
-    fig_bar.update_layout(
-        barmode='stack',
-        height=380,
-        margin=dict(t=20, b=80, l=20, r=20),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation='h', x=0, y=1.08, font=dict(size=12, color='#444')),
-        xaxis=dict(tickangle=-35, tickfont=dict(size=11, color='#555'), gridcolor='rgba(0,0,0,0)'),
-        yaxis=dict(gridcolor='#eeeeea', tickfont=dict(size=11, color='#555'), title='Headcount'),
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
  
     st.markdown("---")
  
