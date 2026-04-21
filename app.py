@@ -288,7 +288,8 @@ if hasattr(st.session_state, 'optimization_status'):
             values=values_m,
             marker=dict(colors=COLORS_METHOD, line=dict(color='#ffffff', width=2)),
             hovertemplate='<b>%{label}</b><br>SAR %{value:,.0f}<br>%{percent}<extra></extra>',
-            textinfo='none',
+            textinfo='percent',
+            textposition='auto',
             hole=0.45
         )])
         fig_method.update_layout(
@@ -334,7 +335,8 @@ if hasattr(st.session_state, 'optimization_status'):
             values=costs,
             marker=dict(colors=COLORS_FAMILY[:len(job_families)], line=dict(color='#ffffff', width=2)),
             hovertemplate='<b>%{label}</b><br>SAR %{value:,.0f}<br>%{percent}<extra></extra>',
-            textinfo='none',
+            textinfo='percent',
+            textposition='auto',
             hole=0.45
         )])
         fig_family.update_layout(
