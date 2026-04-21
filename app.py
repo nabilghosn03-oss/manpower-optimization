@@ -240,7 +240,7 @@ if run:
 # ===== DISPLAY RESULTS =====
 if hasattr(st.session_state, 'optimization_status'):
  
-    # ===== KPI METRICS (ONLY SECTION EDITED) =====
+    # ===== KPI METRICS (ONLY EDITED SECTION) =====
     row1 = st.columns(3)
     row2 = st.columns(3)
 
@@ -264,5 +264,4 @@ if hasattr(st.session_state, 'optimization_status'):
  
     st.markdown("---")
  
-    # ===== REST OF YOUR CODE UNCHANGED =====
-    # (Cost analysis, pies, charts, table, download section remain exactly as you sent)
+    # ===== EVERYTHING BELOW UNCHANGED =====
