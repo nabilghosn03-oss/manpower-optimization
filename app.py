@@ -119,8 +119,14 @@ if stage == 'upload_raw':
             
             mapping_dict = dict(zip(mapping_df['Current Profession'], mapping_df['Updated Profession']))
             
+            # Get unique job families from Updated Profession column in mapping sheet
+            # Normalize to Title Case to ensure consistency
+            unique_job_families = mapping_df['Updated Profession'].dropna().str.title().unique()
+            unique_job_families = sorted(unique_job_families)
+            
             st.write("**Profession Mapping Sample:**")
             st.dataframe(mapping_df.head(10), use_container_width=True)
+            st.write(f"**Total unique job families from mapping sheet:** {len(unique_job_families)}")
             
             # ===== PROCESS INHOUSE DATA =====
             st.markdown("---")
@@ -203,10 +209,10 @@ if stage == 'upload_raw':
             # ===== MERGE & CREATE OPTIMIZATION INPUT =====
             st.markdown("#### Generating Optimization Input...")
             
-            all_professions = set(inhouse_summary.index) | set(subcontractor_summary.index)
+            # Use unique job families from mapping sheet instead of union of data
             optimization_data = []
             
-            for profession in sorted(all_professions):
+            for profession in unique_job_families:
                 inhouse_row = inhouse_summary.loc[profession] if profession in inhouse_summary.index else None
                 outsource_row = subcontractor_summary.loc[profession] if profession in subcontractor_summary.index else None
                 
@@ -225,16 +231,16 @@ if stage == 'upload_raw':
                 
                 max_outsource_ratio = 0.5  # Default 50%
                 
-                if total_employees > 0:
-                    optimization_data.append({
-                        'Job Family': profession,
-                        'Avg Cost Non-Saudi Inhouse': avg_cost_inhouse_non_saudi,
-                        'Avg Cost Saudi Inhouse': avg_cost_inhouse_saudi,
-                        'Avg Cost Outsourced': avg_cost_outsourced,
-                        'Total Employees': int(total_employees),
-                        'Total Inhouse Saudi': total_inhouse_saudi,
-                        'Max Outsource Ratio': max_outsource_ratio
-                    })
+                # Include job family even if no employees (will have 0 total employees)
+                optimization_data.append({
+                    'Job Family': profession,
+                    'Avg Cost Non-Saudi Inhouse': avg_cost_inhouse_non_saudi,
+                    'Avg Cost Saudi Inhouse': avg_cost_inhouse_saudi,
+                    'Avg Cost Outsourced': avg_cost_outsourced,
+                    'Total Employees': int(total_employees),
+                    'Total Inhouse Saudi': total_inhouse_saudi,
+                    'Max Outsource Ratio': max_outsource_ratio
+                })
             
             optimization_df = pd.DataFrame(optimization_data)
             
@@ -535,7 +541,7 @@ elif stage == 'optimize':
                 values=costs,
                 marker=dict(colors=COLORS_FAMILY[:len(job_families)], line=dict(color='#ffffff', width=2)),
                 hovertemplate='<b>%{label}</b><br>SAR %{value:,.0f}<br>%{percent}<extra></extra>',
-                textinfo='percent',
+                textinfo='percent', 
                 textposition='auto',
                 hole=0.45
             )])
