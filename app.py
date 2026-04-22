@@ -210,33 +210,29 @@ if stage == 'upload_raw':
                 inhouse_row = inhouse_summary.loc[profession] if profession in inhouse_summary.index else None
                 outsource_row = subcontractor_summary.loc[profession] if profession in subcontractor_summary.index else None
                 
-                total_employees = 0
-                current_saudi = 0
-                cost_saudi = 0
-                cost_non_saudi = 0
-                cost_outsource_current = 0
-                cost_outsource_improved = 0
+                # Calculate totals
+                total_inhouse = inhouse_row['Total_Inhouse'] if inhouse_row is not None else 0
+                total_outsourced = outsource_row['Total_Outsourced'] if outsource_row is not None else 0
+                total_employees = total_inhouse + total_outsourced
+                
+                total_inhouse_saudi = int(inhouse_row['Saudi_Inhouse']) if inhouse_row is not None else 0
+                total_inhouse_non_saudi = total_inhouse - total_inhouse_saudi
+                
+                # Calculate average costs per employee
+                avg_cost_inhouse_saudi = (inhouse_row['Cost_Per_Employee'] / total_inhouse) if (inhouse_row is not None and total_inhouse > 0) else 0
+                avg_cost_inhouse_non_saudi = (inhouse_row['Cost_Per_Employee'] / total_inhouse_non_saudi) if (inhouse_row is not None and total_inhouse_non_saudi > 0) else 0
+                avg_cost_outsourced = (outsource_row['Cost_Outsourced'] / total_outsourced) if (outsource_row is not None and total_outsourced > 0) else 0
+                
                 max_outsource_ratio = 0.5  # Default 50%
-                
-                if inhouse_row is not None:
-                    total_employees += inhouse_row['Total_Inhouse']
-                    current_saudi += inhouse_row['Saudi_Inhouse']
-                    cost_non_saudi += inhouse_row['Cost_NonSaudi_Inhouse']
-                
-                if outsource_row is not None:
-                    total_employees += outsource_row['Total_Outsourced']
-                    cost_outsource_current += outsource_row['Cost_Outsourced']
-                    cost_outsource_improved += outsource_row['Cost_Outsourced'] * 0.9  # 10% improvement
                 
                 if total_employees > 0:
                     optimization_data.append({
                         'Job Family': profession,
+                        'Avg Cost Non-Saudi Inhouse': avg_cost_inhouse_non_saudi,
+                        'Avg Cost Saudi Inhouse': avg_cost_inhouse_saudi,
+                        'Avg Cost Outsourced': avg_cost_outsourced,
                         'Total Employees': int(total_employees),
-                        'Current Saudi': int(current_saudi),
-                        'Cost Saudi': 0,  # Will be calculated
-                        'Cost Non-Saudi': cost_non_saudi,
-                        'Cost Outsource Current': cost_outsource_current,
-                        'Cost Outsource Improved': cost_outsource_improved,
+                        'Total Inhouse Saudi': total_inhouse_saudi,
                         'Max Outsource Ratio': max_outsource_ratio
                     })
             
@@ -313,16 +309,7 @@ elif stage == 'optimize':
     st.sidebar.markdown("## ⚙️ Optimization Settings")
     st.sidebar.markdown("---")
     
-    st.sidebar.markdown("### 1️⃣ Outsourced Cost Type")
-    outsource_choice = st.sidebar.radio(
-        "Which outsourced cost to use?",
-        options=['current', 'improved'],
-        format_func=lambda x: "Current outsourced cost" if x == 'current' else "Improved outsourced cost",
-        index=0
-    )
-    
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 2️⃣ Saudization Rate")
+    st.sidebar.markdown("### 1️⃣ Saudization Rate")
     enforce_saudization = st.sidebar.checkbox("Enforce overall Saudization Rate?", value=True)
     SAUDIZATION_RATE = None
     if enforce_saudization:
@@ -335,7 +322,7 @@ elif stage == 'optimize':
         st.sidebar.info("No Saudization Rate constraint")
     
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 3️⃣ Saudi Labor Policy")
+    st.sidebar.markdown("### 2️⃣ Saudi Labor Policy")
     can_fire_saudi = st.sidebar.checkbox("Allow reducing current Saudi headcount?", value=False)
     if can_fire_saudi:
         st.sidebar.warning("Saudi labor can be reduced below current levels")
@@ -352,16 +339,14 @@ elif stage == 'optimize':
     data = optimization_df.copy()
     
     COL_JOB_FAMILY = 0
-    COL_TOTAL_EMPLOYEES = 1
-    COL_CURRENT_SAUDI = 2
-    COL_COST_SAUDI = 3
-    COL_COST_NON_SAUDI = 4
-    COL_OUTSOURCE_CURRENT_COST = 5
-    COL_OUTSOURCE_IMPROVED_COST = 6
-    COL_MAX_OUTSOURCE_RATIO = 7
+    COL_TOTAL_EMPLOYEES = 4
+    COL_TOTAL_INHOUSE_SAUDI = 5
+    COL_AVG_COST_SAUDI = 2
+    COL_AVG_COST_NON_SAUDI = 1
+    COL_AVG_COST_OUTSOURCED = 3
+    COL_MAX_OUTSOURCE_RATIO = 6
     
-    COL_COST_OUTSOURCED = COL_OUTSOURCE_IMPROVED_COST if outsource_choice == 'improved' else COL_OUTSOURCE_CURRENT_COST
-    outsource_type = "Improved" if outsource_choice == 'improved' else "Current"
+    outsource_type = "Current"
     
     # ===== RUN OPTIMIZATION =====
     if run:
@@ -371,7 +356,7 @@ elif stage == 'optimize':
                 S, N, O = [], [], []
     
                 for i in range(len(data)):
-                    current_saudi = data.iloc[i]['Current Saudi']
+                    current_saudi = data.iloc[i]['Total Inhouse Saudi']
                     total_employees = data.iloc[i]['Total Employees']
                     max_outsource_ratio = data.iloc[i]['Max Outsource Ratio']
                     saudi_lower_bound = 0 if can_fire_saudi else current_saudi
@@ -384,13 +369,11 @@ elif stage == 'optimize':
                     prob += s + n + o == total_employees, f"Total_Employees_{i}"
                     prob += o <= max_outsource_ratio * total_employees, f"Max_Outsource_Ratio_{i}"
     
-                # Select which outsource cost to use
-                cost_outsource_col = 'Cost Outsource Improved' if outsource_choice == 'improved' else 'Cost Outsource Current'
-                
+                # Objective: minimize total cost using average costs per employee
                 prob += pulp.lpSum(
-                    data.iloc[i]['Cost Saudi'] * S[i] +
-                    data.iloc[i]['Cost Non-Saudi'] * N[i] +
-                    data.iloc[i][cost_outsource_col] * O[i]
+                    data.iloc[i]['Avg Cost Saudi Inhouse'] * S[i] +
+                    data.iloc[i]['Avg Cost Non-Saudi Inhouse'] * N[i] +
+                    data.iloc[i]['Avg Cost Outsourced'] * O[i]
                     for i in range(len(data))
                 )
     
@@ -405,9 +388,12 @@ elif stage == 'optimize':
                         saudi = int(S[i].varValue)
                         non_saudi = int(N[i].varValue)
                         outsourced = int(O[i].varValue)
-                        cost_saudi = data.iloc[i]['Cost Saudi'] * saudi
-                        cost_non_saudi = data.iloc[i]['Cost Non-Saudi'] * non_saudi
-                        cost_outsourced = data.iloc[i][cost_outsource_col] * outsourced
+                        
+                        # Calculate costs using average costs
+                        cost_saudi = data.iloc[i]['Avg Cost Saudi Inhouse'] * saudi
+                        cost_non_saudi = data.iloc[i]['Avg Cost Non-Saudi Inhouse'] * non_saudi
+                        cost_outsourced = data.iloc[i]['Avg Cost Outsourced'] * outsourced
+                        
                         results_data.append({
                             'Job Family': data.iloc[i]['Job Family'],
                             'In-House Saudi': saudi,
