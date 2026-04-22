@@ -127,6 +127,8 @@ if stage == 'upload_raw':
             st.markdown("#### Processing In-House Staff...")
             
             inhouse_df['Profession_Updated'] = inhouse_df['Profession'].map(mapping_dict).fillna(inhouse_df['Profession'])
+            # Normalize job family names to Title Case (combine LABOR, Labor, labor into Labor)
+            inhouse_df['Profession_Updated'] = inhouse_df['Profession_Updated'].str.title()
             inhouse_df['Is_Saudi'] = (inhouse_df['Nationality'] == 'SAUDI').astype(int)
             inhouse_df['Cost_Per_Employee'] = inhouse_df['Total Paid'] + inhouse_df['Total Unpaid']
             
@@ -154,6 +156,8 @@ if stage == 'upload_raw':
                 subcontractor_df['Profession'] = subcontractor_df[' Profession']
             
             subcontractor_df['Profession_Updated'] = subcontractor_df['Profession'].map(mapping_dict).fillna(subcontractor_df['Profession'])
+            # Normalize job family names to Title Case (combine LABOR, Labor, labor into Labor)
+            subcontractor_df['Profession_Updated'] = subcontractor_df['Profession_Updated'].str.title()
             subcontractor_df['Is_Saudi'] = (subcontractor_df['Nationality'] == 'SAUDI').astype(int)
             
             # Calculate outsourced cost with sponsor-dependent insurance
@@ -243,6 +247,42 @@ if stage == 'upload_raw':
             
             # Store in session
             st.session_state.optimization_df = optimization_df
+            st.session_state.inhouse_cleaned = inhouse_df
+            st.session_state.subcontractor_cleaned = subcontractor_df
+            
+            # ===== DOWNLOAD CLEANED DATA =====
+            st.markdown("---")
+            st.markdown("### 📥 Download Cleaned Data")
+            st.markdown("Download the processed and cleaned data before optimization")
+            
+            # Create Excel file with cleaned data
+            cleaned_buffer = io.BytesIO()
+            with pd.ExcelWriter(cleaned_buffer, engine='openpyxl') as writer:
+                # Select relevant columns for download
+                inhouse_export = inhouse_df[[
+                    'No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi',
+                    'Total Paid', 'Total Unpaid', 'Cost_Per_Employee'
+                ]].copy()
+                inhouse_export.to_excel(writer, sheet_name='Inhouse Cleaned', index=False)
+                
+                subcontractor_export = subcontractor_df[[
+                    'No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi',
+                    'Basic', 'Housing Paid', 'Trans Paid', 'Food', 'Gosi', 'Sponser',
+                    'Cost_Per_Employee'
+                ]].copy()
+                subcontractor_export.to_excel(writer, sheet_name='Subcontractor Cleaned', index=False)
+                
+                optimization_df.to_excel(writer, sheet_name='Optimization Input', index=False)
+            
+            cleaned_buffer.seek(0)
+            st.download_button(
+                label="📊 Download Cleaned Data as Excel",
+                data=cleaned_buffer.getvalue(),
+                file_name="Manpower_Cleaned_Data.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_cleaned_data"
+            )
+            
             st.session_state.stage = 'optimize'
             
             st.markdown("---")
