@@ -258,20 +258,20 @@ if stage == 'upload_raw':
             # Create Excel file with cleaned data
             cleaned_buffer = io.BytesIO()
             with pd.ExcelWriter(cleaned_buffer, engine='openpyxl') as writer:
-                # Select relevant columns for download
-                inhouse_export = inhouse_df[[
-                    'No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi',
-                    'Total Paid', 'Total Unpaid', 'Cost_Per_Employee'
-                ]].copy()
+                # Select relevant columns for download - Inhouse
+                inhouse_cols = ['No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi', 
+                               'Total Paid', 'Total Unpaid', 'Cost_Per_Employee']
+                inhouse_export = inhouse_df[[col for col in inhouse_cols if col in inhouse_df.columns]].copy()
                 inhouse_export.to_excel(writer, sheet_name='Inhouse Cleaned', index=False)
                 
-                subcontractor_export = subcontractor_df[[
-                    'No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi',
-                    'Basic', 'Housing Paid', 'Trans Paid', 'Food', 'Gosi', 'Sponser',
-                    'Cost_Per_Employee'
-                ]].copy()
+                # Select relevant columns for download - Subcontractor
+                subcontractor_cols = ['No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi',
+                                     'Basic', 'Housing Paid', 'Trans Paid', 'Food', 'Gosi', 'Sponser',
+                                     'Cost_Per_Employee']
+                subcontractor_export = subcontractor_df[[col for col in subcontractor_cols if col in subcontractor_df.columns]].copy()
                 subcontractor_export.to_excel(writer, sheet_name='Subcontractor Cleaned', index=False)
                 
+                # Optimization input
                 optimization_df.to_excel(writer, sheet_name='Optimization Input', index=False)
             
             cleaned_buffer.seek(0)
@@ -600,7 +600,7 @@ elif stage == 'optimize':
                     xaxis=dict(gridcolor='rgba(0,0,0,0)'),
                     showlegend=False
                 )
-                st.plotly_chart(fig_bk, use_container_width=True)
+                st.plotly_chart(fig_bk, use_container_width=True, key=f"breakdown_chart_{idx}")
     
         st.markdown("---")
     
