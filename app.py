@@ -308,6 +308,10 @@ def get_job_family_with_fallback(activity_profession, exact_mapping):
     Try to map Activity-Profession combination to a Job Family.
     If exact match not found, try to match by profession only.
     """
+    # Handle NaN, None, or non-string values
+    if pd.isna(activity_profession) or not isinstance(activity_profession, str):
+        return 'Other'
+    
     # First, try exact match
     if activity_profession in exact_mapping:
         return exact_mapping[activity_profession]
