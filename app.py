@@ -302,15 +302,21 @@ JOB_FAMILY_MAPPING = {
 if 'stage' not in st.session_state:
     st.session_state.stage = 'upload_raw'
 
+# Extract unique job families (the 44 job families)
+UNIQUE_JOB_FAMILIES = sorted(set(JOB_FAMILY_MAPPING.values()))
+
 # ===== HELPER FUNCTION FOR SMART JOB FAMILY MAPPING =====
 def get_job_family_with_fallback(activity_profession, exact_mapping):
     """
-    Try to map Activity-Profession combination to a Job Family.
-    If exact match not found, try to match by profession only.
+    Map Activity-Profession to one of the 44 job families.
+    Strategy:
+    1. Try exact match
+    2. Extract profession and find best match from unique 44 families
+    3. If still no match, return 'Labor' as safest default
     """
     # Handle NaN, None, or non-string values
     if pd.isna(activity_profession) or not isinstance(activity_profession, str):
-        return 'Other'
+        return 'Labor'  # Default to Labor for missing data
     
     # First, try exact match
     if activity_profession in exact_mapping:
@@ -318,26 +324,28 @@ def get_job_family_with_fallback(activity_profession, exact_mapping):
     
     # Extract profession part (after the " - ")
     if ' - ' in activity_profession:
-        parts = activity_profession.split(' - ')
-        activity = parts[0]
-        profession = parts[1]
+        profession = activity_profession.split(' - ')[1].strip()
         
-        # Try to find a matching job family with same profession
-        for key, value in exact_mapping.items():
-            # Match by profession: if the job family name ends with the same profession
-            if profession.lower() in key.lower() and value.lower() == profession.lower():
-                return value
-            # Or if the mapped value is just the profession
-            if value.lower() == profession.lower():
-                return value
+        # Try exact match with profession name from UNIQUE_JOB_FAMILIES
+        profession_lower = profession.lower()
         
-        # Last resort: try to match with different activity but same profession
+        # Look for exact family match (e.g., profession='Labor' -> 'Labor')
+        for family in UNIQUE_JOB_FAMILIES:
+            if family.lower() == profession_lower:
+                return family
+        
+        # Look for family containing profession (e.g., 'Factory Operator' contains 'Operator')
+        for family in UNIQUE_JOB_FAMILIES:
+            if profession_lower in family.lower():
+                return family
+        
+        # Look for any mapping with same profession
         for key, value in exact_mapping.items():
-            if profession.lower() in value.lower():
+            if profession_lower in key.lower():
                 return value
     
-    # If all else fails, return the profession itself
-    return activity_profession.split(' - ')[-1] if ' - ' in activity_profession else 'Other'
+    # Final fallback: return 'Labor' (most common family)
+    return 'Labor'
 
 # ===== CUSTOM CSS =====
 st.markdown("""
