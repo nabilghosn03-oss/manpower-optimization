@@ -302,6 +302,39 @@ JOB_FAMILY_MAPPING = {
 if 'stage' not in st.session_state:
     st.session_state.stage = 'upload_raw'
 
+# ===== HELPER FUNCTION FOR SMART JOB FAMILY MAPPING =====
+def get_job_family_with_fallback(activity_profession, exact_mapping):
+    """
+    Try to map Activity-Profession combination to a Job Family.
+    If exact match not found, try to match by profession only.
+    """
+    # First, try exact match
+    if activity_profession in exact_mapping:
+        return exact_mapping[activity_profession]
+    
+    # Extract profession part (after the " - ")
+    if ' - ' in activity_profession:
+        parts = activity_profession.split(' - ')
+        activity = parts[0]
+        profession = parts[1]
+        
+        # Try to find a matching job family with same profession
+        for key, value in exact_mapping.items():
+            # Match by profession: if the job family name ends with the same profession
+            if profession.lower() in key.lower() and value.lower() == profession.lower():
+                return value
+            # Or if the mapped value is just the profession
+            if value.lower() == profession.lower():
+                return value
+        
+        # Last resort: try to match with different activity but same profession
+        for key, value in exact_mapping.items():
+            if profession.lower() in value.lower():
+                return value
+    
+    # If all else fails, return the profession itself
+    return activity_profession.split(' - ')[-1] if ' - ' in activity_profession else 'Other'
+
 # ===== CUSTOM CSS =====
 st.markdown("""
 <style>
@@ -417,7 +450,7 @@ if stage == 'upload_raw':
             
             # Step 3: Merge Activity + Profession and map to Job Family
             inhouse_df['Activity_Profession'] = inhouse_df['Activity_Standardized'] + ' - ' + inhouse_df['Profession_Standardized']
-            inhouse_df['Job_Family'] = inhouse_df['Activity_Profession'].map(JOB_FAMILY_MAPPING).fillna('Other')
+            inhouse_df['Job_Family'] = inhouse_df['Activity_Profession'].apply(lambda x: get_job_family_with_fallback(x, JOB_FAMILY_MAPPING))
             
             inhouse_df['Is_Saudi'] = (inhouse_df['Nationality'] == 'SAUDI').astype(int)
             inhouse_df['Cost_Per_Employee'] = inhouse_df['Total Paid'] + inhouse_df['Total Unpaid']
@@ -448,7 +481,7 @@ if stage == 'upload_raw':
             
             # Step 3: Merge Activity + Profession and map to Job Family
             subcontractor_df['Activity_Profession'] = subcontractor_df['Activity_Standardized'] + ' - ' + subcontractor_df['Profession_Standardized']
-            subcontractor_df['Job_Family'] = subcontractor_df['Activity_Profession'].map(JOB_FAMILY_MAPPING).fillna('Other')
+            subcontractor_df['Job_Family'] = subcontractor_df['Activity_Profession'].apply(lambda x: get_job_family_with_fallback(x, JOB_FAMILY_MAPPING))
             
             subcontractor_df['Is_Saudi'] = (subcontractor_df['Nationality'] == 'SAUDI').astype(int)
             
@@ -543,23 +576,6 @@ if stage == 'upload_raw':
             display_df['Max Outsource Ratio'] = display_df['Max Outsource Ratio'].apply(lambda x: f"{x:.1%}")
             
             st.dataframe(display_df, use_container_width=True)
-            
-            # Debug: Check for unmapped employees
-            unmapped_inhouse = inhouse_df[inhouse_df['Job_Family'] == 'Other']
-            unmapped_subcontractor = subcontractor_df[subcontractor_df['Job_Family'] == 'Other']
-            
-            if len(unmapped_inhouse) > 0 or len(unmapped_subcontractor) > 0:
-                st.warning(f"⚠️ {len(unmapped_inhouse)} in-house and {len(unmapped_subcontractor)} subcontractor employees could not be mapped to job families")
-                
-                if len(unmapped_inhouse) > 0:
-                    st.write("**In-House unmapped combinations:**")
-                    unmapped_combos = unmapped_inhouse[['Activity_Standardized', 'Profession_Standardized', 'Activity_Profession']].drop_duplicates()
-                    st.dataframe(unmapped_combos, use_container_width=True)
-                
-                if len(unmapped_subcontractor) > 0:
-                    st.write("**Subcontractor unmapped combinations:**")
-                    unmapped_combos_sub = unmapped_subcontractor[['Activity_Standardized', 'Profession_Standardized', 'Activity_Profession']].drop_duplicates()
-                    st.dataframe(unmapped_combos_sub, use_container_width=True)
             
             # Store in session
             st.session_state.optimization_df = optimization_df
