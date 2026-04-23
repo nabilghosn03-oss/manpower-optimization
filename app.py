@@ -8,6 +8,296 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 st.set_page_config(page_title="Manpower Optimization", layout="wide")
 
+# ===== EMBEDDED MAPPING DICTIONARIES =====
+# These mappings are embedded in the code and will be used to standardize employee data
+
+ACTIVITY_MAPPING = {
+    'Production': 'Factory',
+    'Mgic Store': 'Showroom',
+    'Logistics': 'Installation',
+    'Maintenance': 'Factory',
+    'Idle Saudi Labor': 'Idle Saudi Labor',
+    'Accounts': 'Head Office',
+    'Administration': 'Head Office',
+    'Head Office': 'Head Office',
+    'Procurement': 'Head Office',
+    'Marketing': 'Head Office',
+    'Cost controll': 'Head Office',
+    'Planning': 'Head Office',
+    'Contracting': 'Installation',
+    'Quarries': 'Quarries',
+    'AD.F - VIP South Land': 'Installation',
+    'Shamiya Makkah Haram Extension -Piazza P1150': 'Installation',
+    'Shamiya Service Buildings Deck': 'Installation',
+    'OBEROI \nHOTEL\nRiyad': 'Installation',
+    'Shopdrawing': 'Head Office',
+    'MATAF EXTENSION': 'Installation',
+    'KSAU - HS - Mental Health Hospital': 'Installation',
+    'Shura Central Hotel 01 – Stone Surfaces': 'Installation',
+    'CUC Tunnels': 'Installation',
+    'King Faisal Specialist Hospital Project - Jeddah': 'Installation',
+    'Al-Khaldiyah Palace': 'Installation',
+    'KSAU - HS - Administration Building': 'Installation',
+    'HARAM HIGH SPEED RAIL (Makkah Station)': 'Installation',
+    'Al Murjan Villa': 'Installation',
+    'Installation Supply': 'Installation',
+    'Jeddah Showroom': 'Showroom',
+    'MAC - Laheq Sales Center': 'Installation',
+    'INTERGRATIVE WELLNESS core-30859030301': 'Installation',
+    'MGIC - Laheq Sales Center': 'Installation',
+    'Showroom': 'Showroom',
+    'Export': 'Head Office',
+    'Installation': 'Installation',
+    'Factory': 'Factory',
+}
+
+PROFESSION_MAPPING = {
+    'Executive Management': 'Executive Management',
+    'Operator': 'Operator',
+    'Officer': 'Officer',
+    'Foreman': 'Foreman',
+    'Super-Intendant': 'Superintendent',
+    'Labor': 'Labor',
+    'Inspector': 'Inspector',
+    'Skilled Labor': 'Skilled Labor',
+    'Coordinator': 'Coordinator',
+    'Controller': 'Controller',
+    'Supervisor': 'Supervisor',
+    'Purchaser': 'Purchaser',
+    'Clerk': 'Clerk',
+    'Document Controller': 'Controller',
+    'Technician': 'Technician',
+    'Driver': 'Driver',
+    'Manager': 'Manager',
+    'Assistant': 'Assistant',
+    'Engineer': 'Engineer',
+    'Analyst': 'Analyst',
+    'Store Keeper': 'Store Keeper',
+    'Messenger': 'Messenger',
+    'Surveyor': 'Surveyor',
+    'Representative': 'Representative',
+    'Draftsman': 'Draftsman',
+    'Time Keeper': 'Time Keeper',
+    'Treasurer': 'Treasurer',
+    'Specialist': 'Administration',
+    'Accountant': 'Administration',
+    'Administrator': 'Administration',
+    'Cashier': 'Administration',
+    'Security Guard': 'Security Guard',
+    'Senior Geologist': 'Geologist',
+    'Geologist': 'Geologist',
+    'Junior Technician': 'Technician',
+    'Marble Finishing Technician': 'Technician',
+    'Marble Installation Technician': 'Technician',
+    'Semi Skilled Labor': 'Semi Skilled Labor',
+    'Junior Foreman': 'Foreman',
+    'Installation Foreman': 'Foreman',
+    'Junior Surveyor': 'Surveyor',
+    'Quality Inspector': 'Inspector',
+    'Maintenance Technician': 'Technician',
+    'Machine Operator': 'Operator',
+    'Junior Operator': 'Operator',
+    'Senior Technician': 'Technician',
+    'Junior Inspector': 'Inspector',
+    'Junior Clerk': 'Clerk',
+    'Junior Engineer': 'Engineer',
+    'Senior Operator': 'Operator',
+    'Drill Technician': 'Technician',
+    'Finisher': 'Finisher',
+    'Fixer': 'Semi Skilled Labor',
+    'Labor Polishing': 'Skilled Labor',
+    'Support': 'Labor',
+    'Scissor Operator': 'Operator',
+    'Labor Grouting': 'Skilled Labor',
+    'Labor Safety': 'Labor',
+    'Night Security Guard': 'Security Guard',
+    'Polisher': 'Skilled Labor',
+    'Camp Labor': 'Labor',
+    'Forklift Operator': 'Operator',
+    'Store Labor': 'Labor',
+    'SAFETY FOREMAN': 'Foreman',
+    'Electrician Labor': 'Labor',
+    'Safety': 'Safety Officer',
+    'Welder Operator': 'Technical Operator',
+    'MARBLE FIXER': 'Semi Skilled Labor',
+    'Asst.Timekeeper': 'Time Keeper',
+    'Motor Rewinding': 'Skilled Labor',
+    'Electrician': 'Skilled Labor',
+    'MECHANIC': 'Skilled Labor',
+    'LATHEMACHINE OPERATOR': 'Technical Operator',
+    'WELDER': 'Skilled Labor',
+    'INDUSTRIAL MECHANIC': 'Skilled Labor',
+    'PRODUCTION FOREMAN': 'Foreman',
+    'Driller': 'Skilled Labor',
+    'EQUIPMENT OPERATOR': 'Operator',
+    'DATA ENTRY': 'Administration',
+    'MECHANICAL ENGINEER': 'Engineer',
+    'SPARE PARTS FOREMAN': 'Foreman',
+    'TECHNICAL DATA OPERATOR': 'Technical Operator',
+    'Lathe machine': 'Technical Operator',
+    'Heavy equipment operator': 'Technical Operator',
+    'SALES REPRESENTATIVE': 'Representative',
+    'Erector': 'Semi Skilled Labor',
+    'Help': 'Labor',
+    'MARBLE FINISHER': 'Finisher',
+    'Support Foreman': 'Foreman',
+    'Safety/Security': 'Security Guard',
+    'Camp/Security': 'Security Guard',
+    'Grouting Labor': 'Labor',
+    'Office Boy': 'Labor',
+    'Timekeeper': 'Time Keeper',
+    'Finishing Foreman': 'Foreman',
+    'ASST. TIMEKEEPER': 'Time Keeper',
+    'QUARRIES SUPVERSIOR': 'Supervisor',
+    'SAFETY OFFICER': 'Safety Officer',
+    'Forklift opp.': 'Operator',
+    'PAINTER': 'Skilled Labor',
+    'MATERIAL PLANNING MANAGER': 'Management',
+    'Procurement Agent': 'Administration',
+    'PROJECT ENGINEER (Planing)': 'Engineer',
+    'QUALITY CONTROL COORDINATOR': 'Administration',
+    'Gang Leader': 'Foreman',
+    'Quarry Worker': 'Skilled Labor',
+    'Water Treatment  Operator': 'Technical Operator',
+    'INDUSTRIAL TECHNICAL': 'Technician',
+    'Site/Security': 'Security Guard',
+    'Mechanical': 'Semi Skilled Labor',
+    'Bobcat Operator': 'Operator',
+    'Store Foreman': 'Foreman',
+    'Logistic Foreman': 'Foreman',
+    'Polishing Foreman': 'Foreman',
+    'Project Engineer': 'Engineer',
+    'ESTIMATION BIM ENGINEER': 'Engineer',
+    'Finish': 'Finisher',
+    'Supp': 'Superintendent',
+    'Technical Manager': 'Management',
+    'Carpenter': 'Skilled Labor',
+    'Quantity Surveyor': 'Surveyor',
+    'S Labor': 'Skilled Labor',
+}
+
+JOB_FAMILY_MAPPING = {
+    'Factory - Executive Management': 'Executive Management',
+    'Factory - Operator': 'Factory Operator',
+    'Showroom - Officer': 'Safety Officer',
+    'Installation - Operator': 'Installation Operator',
+    'Factory - Foreman': 'Production Foreman',
+    'Factory - Superintendent': 'Administration',
+    'Installation - Officer': 'Safety Officer',
+    'Factory - Labor': 'Labor',
+    'Factory - Inspector': 'Factory Inspector',
+    'Factory - Skilled Labor': 'Factory Skilled Labor',
+    'Factory - Coordinator': 'Coordinator',
+    'Showroom - Controller': 'Controller',
+    'Factory - Supervisor': 'Factory Supervisor',
+    'Factory - Purchaser': 'Administration',
+    'Factory - Clerk': 'Clerk',
+    'Factory - Controller': 'Controller',
+    'Factory - Technician': 'Factory Technician',
+    'Installation - Driver': 'Driver',
+    'Factory - Officer': 'Safety Officer',
+    'Idle Saudi Labor - Operator': 'Installation Operator',
+    'Showroom - Operator': 'Factory Operator',
+    'Installation - Labor': 'Labor',
+    'Showroom - Labor': 'Labor',
+    'Factory - Manager': 'Management',
+    'Factory - Assistant': 'Assistant',
+    'Factory - Engineer': 'Engineer',
+    'Factory - Analyst': 'Analyst',
+    'Installation - Supervisor': 'Installation Supervisor',
+    'Showroom - Store Keeper': 'Store Keeper',
+    'Idle Saudi Labor - Messenger': 'Labor',
+    'Idle Saudi Labor - Technician': 'Installation Technician',
+    'Idle Saudi Labor - Officer': 'Safety Officer',
+    'Showroom - Clerk': 'Clerk',
+    'Idle Saudi Labor - Skilled Labor': 'Idle Saudi Skilled Labor',
+    'Factory - Surveyor': 'Surveyor',
+    'Idle Saudi Labor - Representative': 'Representative',
+    'Factory - Draftsman': 'Draftsman',
+    'Showroom - Coordinator': 'Coordinator',
+    'Installation - Controller': 'Controller',
+    'Idle Saudi Labor - Purchaser': 'Administration',
+    'Showroom - Foreman': 'Production Foreman',
+    'Idle Saudi Labor - Clerk': 'Clerk',
+    'Factory - Driver': 'Driver',
+    'Factory - Time Keeper': 'Time Keeper',
+    'Installation - Engineer': 'Engineer',
+    'Showroom - Manager': 'Management',
+    'Head Office - Manager': 'Management',
+    'Head Office - Clerk': 'Clerk',
+    'Head Office - Treasurer': 'Administration',
+    'Head Office - Skilled Labor': 'Installation Skilled Labor',
+    'Head Office - Labor': 'Labor',
+    'Head Office - Foreman': 'Installation Foreman',
+    'Head Office - Coordinator': 'Coordinator',
+    'Head Office - Messenger': 'Labor',
+    'Head Office - Purchaser': 'Administration',
+    'Head Office - Analyst': 'Analyst',
+    'Head Office - Controller': 'Controller',
+    'Head Office - Engineer': 'Engineer',
+    'Head Office - Supervisor': 'Installation Supervisor',
+    'Head Office - Surveyor': 'Surveyor',
+    'Head Office - Executive Management': 'Executive Management',
+    'Head Office - Officer': 'Safety Officer',
+    'Head Office - Assistant': 'Assistant',
+    'Installation - Manager': 'Management',
+    'Head Office - Driver': 'Driver',
+    'Head Office - Draftsman': 'Draftsman',
+    'Quarries - Supervisor': 'Quarries Supervisor',
+    'Quarries - Technician': 'Quarries Technician',
+    'Quarries - Foreman': 'Quarries Foreman',
+    'Quarries - Security Guard': 'Security Guard',
+    'Quarries - Clerk': 'Clerk',
+    'Quarries - Messenger': 'Labor',
+    'Quarries - Store Keeper': 'Store Keeper',
+    'Quarries - Operator': 'Quarries Operator',
+    'Quarries - Driver': 'Driver',
+    'Quarries - Geologist': 'Geologist',
+    'Quarries - Officer': 'Safety Officer',
+    'Quarries - Manager': 'Management',
+    'Installation - Foreman': 'Installation Foreman',
+    'Installation - Executive Management': 'Executive Management',
+    'Installation - Purchaser': 'Administration',
+    'Installation - Technician': 'Installation Technician',
+    'Installation - Clerk': 'Clerk',
+    'Installation - Skilled Labor': 'Installation Skilled Labor',
+    'Installation - Messenger': 'Labor',
+    'Installation - Store Keeper': 'Store Keeper',
+    'Installation - Coordinator': 'Coordinator',
+    'Installation - Surveyor': 'Surveyor',
+    'Installation - Analyst': 'Analyst',
+    'Installation - Draftsman': 'Draftsman',
+    'Showroom - Driver': 'Driver',
+    'Showroom - Technician': 'Factory Technician',
+    'Installation - Time Keeper': 'Time Keeper',
+    'Installation - Assistant': 'Assistant',
+    'Installation - Inspector': 'Installation Inspector',
+    'Installation - Superintendent': 'Administration',
+    'Head Office - Inspector': 'Installation Inspector',
+    'Showroom - Supervisor': 'Showroom Supervisor',
+    'Showroom - Inspector': 'Factory Inspector',
+    'Showroom - Engineer': 'Engineer',
+    'Showroom - Draftsman': 'Draftsman',
+    'Showroom - Surveyor': 'Surveyor',
+    'Showroom - Representative': 'Representative',
+    'Showroom - Skilled Labor': 'Factory Skilled Labor',
+    'Installation - Semi Skilled Labor': 'Semi Skilled Labor',
+    'Factory - Semi Skilled Labor': 'Semi Skilled Labor',
+    'Factory - Finisher': 'Factory Finisher',
+    'Factory - Store Keeper': 'Store Keeper',
+    'Factory - Technical Operator': 'Factory Technical Operator',
+    'Quarries - Skilled Labor': 'Quarries Skilled Labor',
+    'Head Office - Administration': 'Administration',
+    'Installation - Administration': 'Administration',
+    'Showroom - Administration': 'Administration',
+    'Quarries - Technical Operator': 'Quarries Technical Operator',
+    'Installation - Security Guard': 'Security Guard',
+    'Installation - Safety Officer': 'Safety Officer',
+    'Installation - Technical Operator': 'Installation Technical Operator',
+    'Installation - Finisher': 'Installation Finisher',
+    'Quarries - Coordinator': 'Coordinator',
+}
+
 # Initialize session state for workflow stages
 if 'stage' not in st.session_state:
     st.session_state.stage = 'upload_raw'
@@ -104,66 +394,58 @@ if stage == 'upload_raw':
     
     if uploaded_file is not None:
         try:
-            # Load all sheets
+            # Load all sheets - only Inhouse and Subcontractor sheets are needed
             inhouse_df = pd.read_excel(uploaded_file, sheet_name='Inhouse')
             subcontractor_df = pd.read_excel(uploaded_file, sheet_name='Subcontractor')
-            mapping_df = pd.read_excel(uploaded_file, sheet_name='Profession Mapping')
             
             st.success("✅ File loaded successfully!")
-            
-            # Process mapping sheet (skip the header row)
-            mapping_df = mapping_df.dropna(how='all')
-            if len(mapping_df) > 0 and pd.isna(mapping_df.iloc[0, 0]):
-                mapping_df = mapping_df.iloc[1:].reset_index(drop=True)
-                mapping_df.columns = ['Index', 'Current Profession', 'Updated Profession']
-            
-            mapping_dict = dict(zip(mapping_df['Current Profession'], mapping_df['Updated Profession']))
-            
-            # Get unique job families from Updated Profession column in mapping sheet
-            # Normalize to Title Case to ensure consistency
-            unique_job_families = mapping_df['Updated Profession'].dropna().str.title().unique()
-            unique_job_families = sorted(unique_job_families)
-            
-            st.write("**Profession Mapping Sample:**")
-            st.dataframe(mapping_df.head(10), use_container_width=True)
-            st.write(f"**Total unique job families from mapping sheet:** {len(unique_job_families)}")
+            st.info("📝 Using embedded 3-step hierarchical mapping: Activity → Profession → Job Family")
             
             # ===== PROCESS INHOUSE DATA =====
             st.markdown("---")
             st.markdown("#### Processing In-House Staff...")
             
-            inhouse_df['Profession_Updated'] = inhouse_df['Profession'].map(mapping_dict).fillna(inhouse_df['Profession'])
-            # Normalize job family names to Title Case (combine LABOR, Labor, labor into Labor)
-            inhouse_df['Profession_Updated'] = inhouse_df['Profession_Updated'].str.title()
+            # Step 1: Standardize Activity (Location → Standardized Activity)
+            inhouse_df['Activity_Standardized'] = inhouse_df['Location'].map(ACTIVITY_MAPPING).fillna(inhouse_df['Location'])
+            
+            # Step 2: Standardize Profession
+            inhouse_df['Profession_Standardized'] = inhouse_df['Profession'].map(PROFESSION_MAPPING).fillna(inhouse_df['Profession'])
+            
+            # Step 3: Merge Activity + Profession and map to Job Family
+            inhouse_df['Activity_Profession'] = inhouse_df['Activity_Standardized'] + ' - ' + inhouse_df['Profession_Standardized']
+            inhouse_df['Job_Family'] = inhouse_df['Activity_Profession'].map(JOB_FAMILY_MAPPING).fillna('Other')
+            
             inhouse_df['Is_Saudi'] = (inhouse_df['Nationality'] == 'SAUDI').astype(int)
             inhouse_df['Cost_Per_Employee'] = inhouse_df['Total Paid'] + inhouse_df['Total Unpaid']
             
-            # Add overtime cost (O.T Hrs) - assume some hourly rate or just use value if available
+            # Add overtime cost (O.T Hrs) - assume 50 SAR/hr
             if 'O.T Hrs' in inhouse_df.columns:
-                inhouse_df['Cost_Per_Employee'] += inhouse_df['O.T Hrs'].fillna(0) * 50  # 50 SAR/hr estimate
+                inhouse_df['Cost_Per_Employee'] += inhouse_df['O.T Hrs'].fillna(0) * 50
             
-            inhouse_summary = inhouse_df.groupby('Profession_Updated').agg({
+            inhouse_summary = inhouse_df.groupby('Job_Family').agg({
                 'No': 'count',
                 'Is_Saudi': 'sum',
                 'Cost_Per_Employee': 'sum'
             }).rename(columns={'No': 'Total_Inhouse', 'Is_Saudi': 'Saudi_Inhouse'})
             
-            inhouse_summary['Cost_Saudi_Inhouse'] = 0
             inhouse_summary['Cost_NonSaudi_Inhouse'] = inhouse_summary['Cost_Per_Employee']
             inhouse_summary['Avg_Cost_Per_Employee'] = inhouse_summary['Cost_Per_Employee'] / inhouse_summary['Total_Inhouse']
             
-            st.write(f"✅ Processed {len(inhouse_df)} in-house employees across {len(inhouse_summary)} professions")
+            st.write(f"✅ Processed {len(inhouse_df)} in-house employees across {len(inhouse_summary)} job families")
             
             # ===== PROCESS SUBCONTRACTOR DATA =====
             st.markdown("#### Processing Subcontracted Staff...")
             
-            # Fix column name (has space)
-            if ' Profession' in subcontractor_df.columns:
-                subcontractor_df['Profession'] = subcontractor_df[' Profession']
+            # Step 1: Standardize Activity (Working in → Standardized Activity)
+            subcontractor_df['Activity_Standardized'] = subcontractor_df['Working in'].map(ACTIVITY_MAPPING).fillna(subcontractor_df['Working in'])
             
-            subcontractor_df['Profession_Updated'] = subcontractor_df['Profession'].map(mapping_dict).fillna(subcontractor_df['Profession'])
-            # Normalize job family names to Title Case (combine LABOR, Labor, labor into Labor)
-            subcontractor_df['Profession_Updated'] = subcontractor_df['Profession_Updated'].str.title()
+            # Step 2: Standardize Profession
+            subcontractor_df['Profession_Standardized'] = subcontractor_df['Profession'].map(PROFESSION_MAPPING).fillna(subcontractor_df['Profession'])
+            
+            # Step 3: Merge Activity + Profession and map to Job Family
+            subcontractor_df['Activity_Profession'] = subcontractor_df['Activity_Standardized'] + ' - ' + subcontractor_df['Profession_Standardized']
+            subcontractor_df['Job_Family'] = subcontractor_df['Activity_Profession'].map(JOB_FAMILY_MAPPING).fillna('Other')
+            
             subcontractor_df['Is_Saudi'] = (subcontractor_df['Nationality'] == 'SAUDI').astype(int)
             
             # Calculate outsourced cost with sponsor-dependent insurance
@@ -195,7 +477,7 @@ if stage == 'upload_raw':
             
             subcontractor_df['Cost_Per_Employee'] = subcontractor_df.apply(calc_outsource_cost, axis=1)
             
-            subcontractor_summary = subcontractor_df.groupby('Profession_Updated').agg({
+            subcontractor_summary = subcontractor_df.groupby('Job_Family').agg({
                 'No': 'count',
                 'Is_Saudi': 'sum',
                 'Cost_Per_Employee': 'sum'
@@ -204,17 +486,18 @@ if stage == 'upload_raw':
             subcontractor_summary['Cost_Outsourced'] = subcontractor_summary['Cost_Per_Employee']
             subcontractor_summary['Avg_Cost_Per_Employee'] = subcontractor_summary['Cost_Per_Employee'] / subcontractor_summary['Total_Outsourced']
             
-            st.write(f"✅ Processed {len(subcontractor_df)} subcontracted employees across {len(subcontractor_summary)} professions")
+            st.write(f"✅ Processed {len(subcontractor_df)} subcontracted employees across {len(subcontractor_summary)} job families")
             
             # ===== MERGE & CREATE OPTIMIZATION INPUT =====
             st.markdown("#### Generating Optimization Input...")
             
-            # Use unique job families from mapping sheet instead of union of data
+            # Get all job families from both inhouse and subcontractor data
+            all_job_families = set(inhouse_summary.index) | set(subcontractor_summary.index)
             optimization_data = []
             
-            for profession in unique_job_families:
-                inhouse_row = inhouse_summary.loc[profession] if profession in inhouse_summary.index else None
-                outsource_row = subcontractor_summary.loc[profession] if profession in subcontractor_summary.index else None
+            for job_family in sorted(all_job_families):
+                inhouse_row = inhouse_summary.loc[job_family] if job_family in inhouse_summary.index else None
+                outsource_row = subcontractor_summary.loc[job_family] if job_family in subcontractor_summary.index else None
                 
                 # Calculate totals
                 total_inhouse = inhouse_row['Total_Inhouse'] if inhouse_row is not None else 0
@@ -222,7 +505,7 @@ if stage == 'upload_raw':
                 total_employees = total_inhouse + total_outsourced
                 
                 total_inhouse_saudi = int(inhouse_row['Saudi_Inhouse']) if inhouse_row is not None else 0
-                total_inhouse_non_saudi = total_inhouse - total_inhouse_saudi
+                total_inhouse_non_saudi = int(total_inhouse - total_inhouse_saudi)
                 
                 # Calculate average costs per employee
                 avg_cost_inhouse_saudi = (inhouse_row['Cost_Per_Employee'] / total_inhouse) if (inhouse_row is not None and total_inhouse > 0) else 0
@@ -231,16 +514,16 @@ if stage == 'upload_raw':
                 
                 max_outsource_ratio = 0.5  # Default 50%
                 
-                # Include job family even if no employees (will have 0 total employees)
-                optimization_data.append({
-                    'Job Family': profession,
-                    'Avg Cost Non-Saudi Inhouse': avg_cost_inhouse_non_saudi,
-                    'Avg Cost Saudi Inhouse': avg_cost_inhouse_saudi,
-                    'Avg Cost Outsourced': avg_cost_outsourced,
-                    'Total Employees': int(total_employees),
-                    'Total Inhouse Saudi': total_inhouse_saudi,
-                    'Max Outsource Ratio': max_outsource_ratio
-                })
+                if total_employees > 0:
+                    optimization_data.append({
+                        'Job Family': job_family,
+                        'Avg Cost Non-Saudi Inhouse': avg_cost_inhouse_non_saudi,
+                        'Avg Cost Saudi Inhouse': avg_cost_inhouse_saudi,
+                        'Avg Cost Outsourced': avg_cost_outsourced,
+                        'Total Employees': int(total_employees),
+                        'Total Inhouse Saudi': total_inhouse_saudi,
+                        'Max Outsource Ratio': max_outsource_ratio
+                    })
             
             optimization_df = pd.DataFrame(optimization_data)
             
@@ -261,13 +544,15 @@ if stage == 'upload_raw':
             cleaned_buffer = io.BytesIO()
             with pd.ExcelWriter(cleaned_buffer, engine='openpyxl') as writer:
                 # Select relevant columns for download - Inhouse
-                inhouse_cols = ['No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi', 
+                inhouse_cols = ['No', 'Nationality', 'Location', 'Activity_Standardized', 'Profession', 
+                               'Profession_Standardized', 'Job_Family', 'Is_Saudi', 
                                'Total Paid', 'Total Unpaid', 'Cost_Per_Employee']
                 inhouse_export = inhouse_df[[col for col in inhouse_cols if col in inhouse_df.columns]].copy()
                 inhouse_export.to_excel(writer, sheet_name='Inhouse Cleaned', index=False)
                 
                 # Select relevant columns for download - Subcontractor
-                subcontractor_cols = ['No', 'Nationality', 'Profession', 'Profession_Updated', 'Is_Saudi',
+                subcontractor_cols = ['No', 'Nationality', 'Working in', 'Activity_Standardized', 'Profession', 
+                                     'Profession_Standardized', 'Job_Family', 'Is_Saudi',
                                      'Basic', 'Housing Paid', 'Trans Paid', 'Food', 'Gosi', 'Sponser',
                                      'Cost_Per_Employee']
                 subcontractor_export = subcontractor_df[[col for col in subcontractor_cols if col in subcontractor_df.columns]].copy()
