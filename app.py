@@ -532,7 +532,34 @@ if stage == 'upload_raw':
             optimization_df = pd.DataFrame(optimization_data)
             
             st.write(f"✅ Created optimization input with {len(optimization_df)} job families")
-            st.dataframe(optimization_df, use_container_width=True)
+            
+            # Format numbers for display (thousands separator, no decimals)
+            display_df = optimization_df.copy()
+            display_df['Total Employees'] = display_df['Total Employees'].apply(lambda x: f"{int(x):,}")
+            display_df['Total Inhouse Saudi'] = display_df['Total Inhouse Saudi'].apply(lambda x: f"{int(x):,}")
+            display_df['Avg Cost Non-Saudi Inhouse'] = display_df['Avg Cost Non-Saudi Inhouse'].apply(lambda x: f"{x:,.0f}")
+            display_df['Avg Cost Saudi Inhouse'] = display_df['Avg Cost Saudi Inhouse'].apply(lambda x: f"{x:,.0f}")
+            display_df['Avg Cost Outsourced'] = display_df['Avg Cost Outsourced'].apply(lambda x: f"{x:,.0f}")
+            display_df['Max Outsource Ratio'] = display_df['Max Outsource Ratio'].apply(lambda x: f"{x:.1%}")
+            
+            st.dataframe(display_df, use_container_width=True)
+            
+            # Debug: Check for unmapped employees
+            unmapped_inhouse = inhouse_df[inhouse_df['Job_Family'] == 'Other']
+            unmapped_subcontractor = subcontractor_df[subcontractor_df['Job_Family'] == 'Other']
+            
+            if len(unmapped_inhouse) > 0 or len(unmapped_subcontractor) > 0:
+                st.warning(f"⚠️ {len(unmapped_inhouse)} in-house and {len(unmapped_subcontractor)} subcontractor employees could not be mapped to job families")
+                
+                if len(unmapped_inhouse) > 0:
+                    st.write("**In-House unmapped combinations:**")
+                    unmapped_combos = unmapped_inhouse[['Activity_Standardized', 'Profession_Standardized', 'Activity_Profession']].drop_duplicates()
+                    st.dataframe(unmapped_combos, use_container_width=True)
+                
+                if len(unmapped_subcontractor) > 0:
+                    st.write("**Subcontractor unmapped combinations:**")
+                    unmapped_combos_sub = unmapped_subcontractor[['Activity_Standardized', 'Profession_Standardized', 'Activity_Profession']].drop_duplicates()
+                    st.dataframe(unmapped_combos_sub, use_container_width=True)
             
             # Store in session
             st.session_state.optimization_df = optimization_df
