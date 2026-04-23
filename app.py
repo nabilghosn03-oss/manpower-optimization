@@ -398,6 +398,10 @@ if stage == 'upload_raw':
             inhouse_df = pd.read_excel(uploaded_file, sheet_name='Inhouse')
             subcontractor_df = pd.read_excel(uploaded_file, sheet_name='Subcontractor')
             
+            # Strip whitespace from column names to handle trailing spaces
+            inhouse_df.columns = inhouse_df.columns.str.strip()
+            subcontractor_df.columns = subcontractor_df.columns.str.strip()
+            
             st.success("✅ File loaded successfully!")
             st.info("📝 Using embedded 3-step hierarchical mapping: Activity → Profession → Job Family")
             
